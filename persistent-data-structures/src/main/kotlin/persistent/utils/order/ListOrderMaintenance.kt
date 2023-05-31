@@ -1,4 +1,4 @@
-package persistent.utils
+package persistent.utils.order
 
 import java.util.NoSuchElementException
 
@@ -7,18 +7,17 @@ interface OrderMaintenanceStructure<T> {
     fun isBefore(before: T, after: T): Boolean
 }
 
-interface BitLabeledTree<T: BitLabeledTreeNode> {
+interface BitLabeledTree<T: BitLabeledTreeNode<*>> {
     fun insertAfter(after: T?): T
 }
 
-interface BitLabeledTreeNode {
-    var label: BitLabel
+interface BitLabeledTreeNode<T: BitLabel> {
+    val label: T
 }
 
-class ListOrderMaintenance<T>: OrderMaintenanceStructure<T> {
+class ListOrderMaintenance<T, V: BitLabeledTreeNode<*>> (private val globalNodes: BitLabeledTree<V>): OrderMaintenanceStructure<T> {
     private var tail: Node? = null
     private val nodes: MutableMap<T, Node> = HashMap()
-    private val globalNodes: BitLabeledTree<BitLabeledTreeNode> = BitLabeledScapegoatTree(null, 0, 0, 0, 0)
 
     companion object {
         private const val MIN_LOCAL_LABEL: Long = Long.MIN_VALUE
@@ -26,7 +25,7 @@ class ListOrderMaintenance<T>: OrderMaintenanceStructure<T> {
         private const val LOCAL_LABEL_DELTA: Long = Int.MAX_VALUE + 8L
     }
 
-    private inner class GlobalLabel(val labeledNode: BitLabeledTreeNode, private var size: Int = 0, private var lastNode: Node? = null) {
+    private inner class GlobalLabel(val labeledNode: V, private var size: Int = 0, private var lastNode: Node? = null) {
 
         fun insert(node: Node) {
             val mustBeSplitted = size > 0 && size >= getSize().log2()
@@ -135,7 +134,7 @@ class ListOrderMaintenance<T>: OrderMaintenanceStructure<T> {
         }
 
         override fun equals(other: Any?): Boolean {
-            if (other is ListOrderMaintenance<*>.Node) {
+            if (other is ListOrderMaintenance<*, *>.Node) {
                 return localLabel == other.localLabel && globalLabel == other.globalLabel
             }
             return false
